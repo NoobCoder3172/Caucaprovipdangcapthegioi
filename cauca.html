@@ -1,0 +1,337 @@
+# Simple Fishing Game (1 file chạy ngay trên GitHub)
+
+Tạo file `index.html` rồi copy toàn bộ code bên dưới vào.
+
+Sau đó:
+
+1. Tạo repository trên GitHub
+2. Upload file `index.html`
+3. Vào `Settings -> Pages`
+4. Chọn branch `main`
+5. Save
+6. GitHub sẽ tạo link game cho bạn
+
+---
+
+```html
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fishing Game</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(to bottom, #87ceeb 0%, #4aa3df 40%, #1d5c91 100%);
+      height: 100vh;
+      overflow: hidden;
+      color: white;
+    }
+
+    .game {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    h1 {
+      font-size: 42px;
+      text-shadow: 0 0 10px rgba(0,0,0,0.4);
+    }
+
+    .fish-box {
+      text-align: center;
+    }
+
+    .fish-name {
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .difficulty {
+      font-size: 20px;
+      opacity: 0.9;
+    }
+
+    .battle-area {
+      width: 420px;
+      height: 320px;
+      background: rgba(0,0,0,0.25);
+      border: 4px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 25px rgba(0,0,0,0.3);
+    }
+
+    .target-zone {
+      position: absolute;
+      width: 100%;
+      height: 80px;
+      background: rgba(0,255,100,0.35);
+      border-top: 3px solid #8aff8a;
+      border-bottom: 3px solid #8aff8a;
+      transition: top 0.1s linear;
+    }
+
+    .player-bar {
+      position: absolute;
+      width: 100%;
+      height: 60px;
+      background: rgba(255,255,255,0.9);
+      border-top: 3px solid white;
+      border-bottom: 3px solid white;
+    }
+
+    .progress-container {
+      width: 420px;
+      height: 30px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 999px;
+      overflow: hidden;
+      border: 3px solid rgba(255,255,255,0.2);
+    }
+
+    .progress {
+      height: 100%;
+      width: 50%;
+      background: linear-gradient(to right, #00ff88, #7cff00);
+      transition: width 0.05s linear;
+    }
+
+    .info {
+      font-size: 18px;
+      text-align: center;
+      opacity: 0.95;
+      line-height: 1.6;
+    }
+
+    .result {
+      font-size: 34px;
+      font-weight: bold;
+      margin-top: 10px;
+      text-shadow: 0 0 12px rgba(0,0,0,0.5);
+    }
+
+    button {
+      padding: 14px 28px;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      background: white;
+      color: #1d5c91;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="game">
+    <h1>🎣 Fishing Game</h1>
+
+    <div class="fish-box">
+      <div class="fish-name" id="fishName"></div>
+      <div class="difficulty" id="difficulty"></div>
+    </div>
+
+    <div class="battle-area" id="battleArea">
+      <div class="target-zone" id="targetZone"></div>
+      <div class="player-bar" id="playerBar"></div>
+    </div>
+
+    <div class="progress-container">
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <div class="info">
+      Giữ chuột để thanh đi lên<br>
+      Thả chuột để thanh rơi xuống
+    </div>
+
+    <div class="result" id="result"></div>
+
+    <button onclick="startGame()">🎲 Câu Cá Mới</button>
+  </div>
+
+  <script>
+    const fishes = [
+      {
+        name: '🐟 Cá Rô Phi',
+        difficulty: 1,
+        speed: 1.5
+      },
+      {
+        name: '🐠 Cá Chép',
+        difficulty: 2,
+        speed: 2
+      },
+      {
+        name: '🐡 Cá Trê',
+        difficulty: 3,
+        speed: 2.6
+      },
+      {
+        name: '🐊 Cá Sấu',
+        difficulty: 5,
+        speed: 4
+      },
+      {
+        name: '🦈 Cá Mập',
+        difficulty: 7,
+        speed: 5.5
+      }
+    ];
+
+    const battleArea = document.getElementById('battleArea');
+    const playerBar = document.getElementById('playerBar');
+    const targetZone = document.getElementById('targetZone');
+    const progressBar = document.getElementById('progress');
+    const result = document.getElementById('result');
+
+    let currentFish;
+
+    let holding = false;
+
+    let playerY = 120;
+    let velocity = 0;
+
+    let targetY = 100;
+    let targetVelocity = 3;
+
+    let catchProgress = 50;
+
+    let gameRunning = false;
+
+    const areaHeight = 320;
+    const playerHeight = 60;
+    const targetHeight = 80;
+
+    function randomFish() {
+      return fishes[Math.floor(Math.random() * fishes.length)];
+    }
+
+    function startGame() {
+      currentFish = randomFish();
+
+      document.getElementById('fishName').innerText = currentFish.name;
+      document.getElementById('difficulty').innerText = 'Độ khó: ' + currentFish.difficulty;
+
+      playerY = 120;
+      velocity = 0;
+
+      targetY = 100;
+      targetVelocity = currentFish.speed;
+
+      catchProgress = 50;
+      result.innerText = '';
+
+      gameRunning = true;
+    }
+
+    document.addEventListener('mousedown', () => {
+      holding = true;
+    });
+
+    document.addEventListener('mouseup', () => {
+      holding = false;
+    });
+
+    function update() {
+      if (!gameRunning) {
+        requestAnimationFrame(update);
+        return;
+      }
+
+      // PLAYER PHYSICS
+      if (holding) {
+        velocity -= 0.55;
+      } else {
+        velocity += 0.4;
+      }
+
+      velocity *= 0.92;
+      playerY += velocity;
+
+      if (playerY < 0) {
+        playerY = 0;
+        velocity = 0;
+      }
+
+      if (playerY > areaHeight - playerHeight) {
+        playerY = areaHeight - playerHeight;
+        velocity = 0;
+      }
+
+      // TARGET RANDOM MOVEMENT
+      targetY += targetVelocity;
+
+      if (Math.random() < 0.03 * currentFish.difficulty) {
+        targetVelocity = (Math.random() - 0.5) * currentFish.speed * 3;
+      }
+
+      if (targetY < 0) {
+        targetY = 0;
+        targetVelocity *= -1;
+      }
+
+      if (targetY > areaHeight - targetHeight) {
+        targetY = areaHeight - targetHeight;
+        targetVelocity *= -1;
+      }
+
+      // HIT CHECK
+      const overlap =
+        playerY + playerHeight > targetY &&
+        playerY < targetY + targetHeight;
+
+      if (overlap) {
+        catchProgress += 0.45;
+      } else {
+        catchProgress -= 0.55;
+      }
+
+      catchProgress = Math.max(0, Math.min(100, catchProgress));
+
+      // WIN / LOSE
+      if (catchProgress >= 100) {
+        result.innerText = '🎉 Bắt Thành Công!';
+        gameRunning = false;
+      }
+
+      if (catchProgress <= 0) {
+        result.innerText = '💀 Cá Thoát Mất!';
+        gameRunning = false;
+      }
+
+      // RENDER
+      playerBar.style.top = playerY + 'px';
+      targetZone.style.top = targetY + 'px';
+      progressBar.style.width = catchProgress + '%';
+
+      requestAnimationFrame(update);
+    }
+
+    startGame();
+    update();
+  </script>
+</body>
+</html>
